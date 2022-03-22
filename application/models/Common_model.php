@@ -108,7 +108,7 @@ class COMMON_MODEL extends CI_Model
         $GOOGLE_FCM_URL = "https://fcm.googleapis.com/fcm/send";
 
         $data = array(
-            "title" => 'Bugs Tracker',
+            "title" => APP_NAME,
             'foreign_id' => $foreign_id,
             'sender_id' => $sender_id,
             'receiver_id' => $receiver_id,
@@ -117,7 +117,7 @@ class COMMON_MODEL extends CI_Model
         );
 
         $notification = array(
-            "title" => 'Bugs Tracker',
+            "title" => APP_NAME,
             "body" => $message
         );
 
@@ -168,5 +168,50 @@ class COMMON_MODEL extends CI_Model
         } else {
             return false;
         }
+    }
+
+	public function send_topic_notification($sender_id, $topics, $message, $type)
+    {
+        $GOOGLE_API_KEY = GOOGLE_API_KEY;
+        $GOOGLE_FCM_URL = "https://fcm.googleapis.com/fcm/send";
+
+        $data = array(
+            'title' => APP_NAME,
+            'message' => $message,
+            'sender_id' => $sender_id,
+            'type' => $type,
+        );
+
+        $notification = array(
+            "title" => APP_NAME,
+            "body" => $message,
+        );
+
+        $fields = array(
+            'to' => '/topics/' . $topics,
+            'priority' => "high",
+            'notification' => $notification,
+            'data' => $data
+        );
+
+        $headers = array(
+            'Authorization: key=' . $GOOGLE_API_KEY,
+            'Content-Type: application/json'
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $GOOGLE_FCM_URL);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST,"POST");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+        $result = curl_exec($ch);
+        if ($result === FALSE) {
+            die('Problem occurred: ' . curl_error($ch));
+        }
+        curl_close($ch);
+
+        return $result;
     }
 }

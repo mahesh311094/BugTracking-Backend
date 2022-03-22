@@ -84,9 +84,6 @@ defined('EXIT_DATABASE')       or define('EXIT_DATABASE', 8); // database error
 defined('EXIT__AUTO_MIN')      or define('EXIT__AUTO_MIN', 9); // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      or define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
 
-// Testing URL
-// $base_url = "https://meshdroid.com/MHC/";
-
 // Live URL
 $base_url = "http://65.2.44.201/BugTracking/";
 
@@ -101,3 +98,4 @@ define('NOTIFICATION_TABLE', 'notifications');
 define('USER_TABLE', 'users');
 
 define('GOOGLE_API_KEY', 'AAAAoHcPA5w:APA91bEfgZitBnRy4noM2dbgvhprMAJyw958g4eZCIPzXDtW69YDZQhAUaBqW0WyLGldQ_g4Zk1YdVMPJ2d5mmwOXPwf7apYLYcjmiry0hOkjCwAsr0x4NLqWtHP8MAE1jwDwiXlhnK2');
+define('APP_NAME', 'Bugs Tracker');

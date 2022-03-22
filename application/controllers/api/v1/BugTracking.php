@@ -131,28 +131,16 @@ class BugTracking extends REST_Controller
                 $issue_id = $this->Common_model->clean($issue_id);
                 $this->Common_model->change_status(ISSUE_TABLE, 'issue_id', $issue_id, 'id', $result);
 
-                if ($addressed_to == "Dr. Arun") {
-                    $addressed_to = "1";
-                } else {
-                    $addressed_to = "2";
-                }
-
-                $token = "";
                 $sender_name = "";
                 $notification_type = "add_issue";
-
-                $getData = $this->BugTrackingModel->get_details(USER_TABLE, $addressed_to);
-                if (!empty($getData)) {
-                    $token = $getData['token'];
-                }
 
                 $senderData = $this->BugTrackingModel->get_details(USER_TABLE, $issue_raised_by);
                 if (!empty($senderData)) {
                     $sender_name = $senderData['name'];
                 }
-                $msg =  $sender_name . ' has added new issue';
+                $msg =  $sender_name . ' added new issue';
 
-                $this->Common_model->send_notification($result, $issue_raised_by, $addressed_to, $token, $msg, $notification_type, NOTIFICATION_TABLE);
+                $this->Common_model->send_topic_notification($issue_id, "bugsTracker", $msg, $notification_type);
 
                 $message = array(
                     'status' => 'success',
@@ -346,20 +334,8 @@ class BugTracking extends REST_Controller
             $result = $this->Common_model->insert_data($data, COMMENT_TABLE);
 
             if (!empty($result)) {
-                $token = "";
                 $sender_name = "";
                 $notification_type = "add_comment";
-
-                $getDetails = $this->Common_model->get_data_by_id(ISSUE_TABLE, 'id', $issue_id);
-                if (!empty($getDetails)) {
-                    $issue_raised_by = $getDetails['issue_raised_by'];
-                    $addressed_to = $getDetails['addressed_to'];
-                }
-
-                $getData = $this->BugTrackingModel->get_details(USER_TABLE, $issue_raised_by);
-                if (!empty($getData)) {
-                    $token = $getData['token'];
-                }
 
                 $senderData = $this->BugTrackingModel->get_details(USER_TABLE, $user_id);
                 if (!empty($senderData)) {
@@ -367,7 +343,7 @@ class BugTracking extends REST_Controller
                 }
                 $msg =  $sender_name . ' has added new comment';
 
-                $this->Common_model->send_notification($result, $issue_raised_by, $addressed_to, $token, $msg, $notification_type, NOTIFICATION_TABLE);
+                $this->Common_model->send_topic_notification($issue_id, "bugsTracker", $msg, $notification_type);
 
                 $message = array(
                     'status' => 'success',
