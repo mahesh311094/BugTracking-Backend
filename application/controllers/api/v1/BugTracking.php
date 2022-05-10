@@ -72,7 +72,7 @@ class BugTracking extends REST_Controller
         $other = $this->post('other');
         $priority = $this->post('priority');
 
-        if (!empty($issue_is) && !empty($issue_side) && !empty($in_which_apk) && !empty($where_problem)) {
+        if (!empty($issue_is) && !empty($issue_side) && !empty($in_which_apk) && !empty($issue_explain)) {
             $data = array(
                 'for_apk' => $for_apk,
                 'issue_is' => $issue_is,
@@ -140,7 +140,7 @@ class BugTracking extends REST_Controller
                 }
                 $msg =  $sender_name . ' added new issue';
 
-                $this->Common_model->send_topic_notification($issue_id, "bugsTracker", $msg, $notification_type);
+                $this->Common_model->send_topic_notification($issue_id, "BugsTracker", $msg, $notification_type);
 
                 $message = array(
                     'status' => 'success',
@@ -155,7 +155,7 @@ class BugTracking extends REST_Controller
         } else {
             $message = array(
                 'status' => 'error',
-                'msg' => 'issue_is, issue_side, in_which_apk, where_problem are required'
+                'msg' => 'issue_is, issue_side, in_which_apk, issue_explain are required'
             );
         }
         $this->set_response($message, REST_Controller::HTTP_OK);
@@ -268,6 +268,11 @@ class BugTracking extends REST_Controller
     {
         $issue_id = $this->post('issue_id');
         $status = $this->post('status');
+        $reject_reason = $this->post('reject_reason');
+
+        if (empty($reject_reason)) {
+            $reject_reason = "";
+        }
 
         if (!empty($issue_id) && !empty($status)) {
             if ($status == "Solved") {
@@ -278,7 +283,12 @@ class BugTracking extends REST_Controller
                 $update_status = "";
             }
 
-            $updateStatus = $this->Common_model->change_status(ISSUE_TABLE, 'status', $update_status, 'id', $issue_id);
+            $data = array(
+                'status' => $update_status,
+                'reject_reason' => $reject_reason
+            );
+
+            $updateStatus = $this->Common_model->update(ISSUE_TABLE, $data, 'id', $issue_id);
 
             if (!empty($updateStatus)) {
                 $token = "";
@@ -343,7 +353,7 @@ class BugTracking extends REST_Controller
                 }
                 $msg =  $sender_name . ' has added new comment';
 
-                $this->Common_model->send_topic_notification($issue_id, "bugsTracker", $msg, $notification_type);
+                $this->Common_model->send_topic_notification($issue_id, "BugsTracker", $msg, $notification_type);
 
                 $message = array(
                     'status' => 'success',
