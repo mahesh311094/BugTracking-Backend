@@ -91,6 +91,7 @@ define('TEST_MODE', 1); //0 OFF, 1 ON
 define('NOTIFICATION_ALLOWED', 100);
 define('DEFAULT_PAGE_LIMIT', 50);
 define('BUGS_IMAGE_PATH', $base_url . 'uploads/bugs_images/');
+define('BUGS_AUDIO_PATH', $base_url . 'uploads/bugs_audio/');
 
 define('ISSUE_TABLE', 'issues');
 define('COMMENT_TABLE', 'comment');

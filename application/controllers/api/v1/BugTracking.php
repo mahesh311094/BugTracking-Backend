@@ -18,7 +18,6 @@ class BugTracking extends REST_Controller
         $token = $this->post('token');
 
         if (!empty($login_email) && !empty($password)) {
-
             $login = array(
                 'login_email' => $login_email,
                 'password' => $password
@@ -57,9 +56,10 @@ class BugTracking extends REST_Controller
         $this->set_response($message, REST_Controller::HTTP_OK);
     }
 
-    // Add Issue
+    // Add Update Issue
     public function add_issue_post()
     {
+        $bug_id = $this->post('bug_id');
         $for_apk = $this->post('for_apk');
         $issue_is = $this->post('issue_is');
         $issue_side = $this->post('issue_side');
@@ -72,7 +72,9 @@ class BugTracking extends REST_Controller
         $other = $this->post('other');
         $priority = $this->post('priority');
 
-        if (!empty($issue_is) && !empty($issue_side) && !empty($in_which_apk) && !empty($issue_explain)) {
+        $sender_name = "";
+
+        if (!empty($for_apk) && !empty($issue_is) && !empty($issue_side) && !empty($issue_raised_by) && !empty($addressed_to) && !empty($in_which_apk) && !empty($issue_explain) && !empty($priority)) {
             $data = array(
                 'for_apk' => $for_apk,
                 'issue_is' => $issue_is,
@@ -124,38 +126,71 @@ class BugTracking extends REST_Controller
                 }
             }
 
-            $result = $this->Common_model->insert_data($data, ISSUE_TABLE);
+            if (isset($_FILES['audio_clip'])) {
+                $file_name = $_FILES['audio_clip']['name'];
+                $ext = pathinfo($file_name, PATHINFO_EXTENSION);
 
-            if (!empty($result)) {
-                $issue_id = $for_apk . '_Bug_' . $result;
-                $issue_id = $this->Common_model->clean($issue_id);
-                $this->Common_model->change_status(ISSUE_TABLE, 'issue_id', $issue_id, 'id', $result);
-
-                $sender_name = "";
-                $notification_type = "add_issue";
-
-                $senderData = $this->BugTrackingModel->get_details(USER_TABLE, $issue_raised_by);
-                if (!empty($senderData)) {
-                    $sender_name = $senderData['name'];
+                if ($ext != "") {
+                    $name = time() . '_audio' . "." . $ext;
+                    $tmp_name = $_FILES['audio_clip']['tmp_name'];
+                    $savepath = "uploads/bugs_audio/" . $name;
+                    move_uploaded_file($tmp_name, $savepath);
+                    $data['audio_clip'] = $name;
                 }
-                $msg =  $sender_name . ' added new issue';
+            }
 
-                $this->Common_model->send_topic_notification($issue_id, "BugsTracker", $msg, $notification_type);
+            $senderData = $this->BugTrackingModel->get_details(USER_TABLE, $issue_raised_by);
+            if (!empty($senderData)) {
+                $sender_name = $senderData['name'];
+            }
 
-                $message = array(
-                    'status' => 'success',
-                    'msg' => 'Issue added successfully',
-                );
+            if ($bug_id != "") {
+                $result = $this->Common_model->update(ISSUE_TABLE, $data, 'id', $bug_id);
+
+                if (!empty($result)) {
+                    $notification_type = "update_issue";
+                    $msg =  $sender_name . ' updated issue MHClinic_Bug_' . $bug_id;
+
+                    $this->Common_model->send_topic_notification($bug_id, $issue_raised_by, "BugsTracker", $msg, $notification_type);
+
+                    $message = array(
+                        'status' => 'success',
+                        'msg' => 'Issue updated successfully',
+                    );
+                } else {
+                    $message = array(
+                        'status' => 'error',
+                        'msg' => 'Sorry, issue not updated, Try again later !!'
+                    );
+                }
             } else {
-                $message = array(
-                    'status' => 'error',
-                    'msg' => 'Sorry, issue not inserted, Try again later !!'
-                );
+                $result = $this->Common_model->insert_data($data, ISSUE_TABLE);
+
+                if (!empty($result)) {
+                    $issue_id = $for_apk . '_Bug_' . $result;
+                    $issue_id = $this->Common_model->clean($issue_id);
+                    $this->Common_model->change_status(ISSUE_TABLE, 'issue_id', $issue_id, 'id', $result);
+
+                    $notification_type = "add_issue";
+                    $msg =  $sender_name . ' added new issue';
+
+                    $this->Common_model->send_topic_notification($result, $issue_raised_by, "BugsTracker", $msg, $notification_type);
+
+                    $message = array(
+                        'status' => 'success',
+                        'msg' => 'Issue added successfully',
+                    );
+                } else {
+                    $message = array(
+                        'status' => 'error',
+                        'msg' => 'Sorry, issue not inserted, Try again later !!'
+                    );
+                }
             }
         } else {
             $message = array(
                 'status' => 'error',
-                'msg' => 'issue_is, issue_side, in_which_apk, issue_explain are required'
+                'msg' => 'for_apk, issue_is, issue_side, issue_raised_by, addressed_to, in_which_apk, issue_explain, priority are required'
             );
         }
         $this->set_response($message, REST_Controller::HTTP_OK);
@@ -166,16 +201,16 @@ class BugTracking extends REST_Controller
     {
         $project = $this->post('project');
         $user_id = $this->post('user_id');
-        $sort = $this->post('sort');
+        $filter = $this->post('filter');
         $page_no = $this->post('page_no');
         $limit = DEFAULT_PAGE_LIMIT;
 
-        if (!empty($project) && !empty($sort)) {
-            if ($sort == 'Pending') {
+        if (!empty($project) && !empty($filter)) {
+            if ($filter == 'Pending') {
                 $status = "0";
-            } else if ($sort == 'Solved') {
+            } else if ($filter == 'Solved') {
                 $status = "1";
-            } else if ($sort == 'Reject') {
+            } else if ($filter == 'Reject') {
                 $status = "2";
             } else {
                 $status = "";
@@ -199,7 +234,7 @@ class BugTracking extends REST_Controller
         } else {
             $message = array(
                 'status' => 'error',
-                'msg' => 'project and sort required'
+                'msg' => 'project and filter required'
             );
         }
 
@@ -270,10 +305,6 @@ class BugTracking extends REST_Controller
         $status = $this->post('status');
         $reject_reason = $this->post('reject_reason');
 
-        if (empty($reject_reason)) {
-            $reject_reason = "";
-        }
-
         if (!empty($issue_id) && !empty($status)) {
             if ($status == "Solved") {
                 $update_status = "1";
@@ -285,24 +316,29 @@ class BugTracking extends REST_Controller
 
             $data = array(
                 'status' => $update_status,
-                'reject_reason' => $reject_reason
+                'reject_reason' => $reject_reason,
+                'issue_updated_on' => date('d-m-Y H:i')
             );
 
             $updateStatus = $this->Common_model->update(ISSUE_TABLE, $data, 'id', $issue_id);
 
             if (!empty($updateStatus)) {
-                $token = "";
                 $notification_type = "issue_status";
 
                 $getDetails = $this->Common_model->get_data_by_id(ISSUE_TABLE, 'id', $issue_id);
                 if (!empty($getDetails)) {
                     $issue_raised_by = $getDetails['issue_raised_by'];
                     $addressed_to = $getDetails['addressed_to'];
+                } else {
+                    $issue_raised_by = "";
+                    $addressed_to = "";
                 }
 
                 $getData = $this->BugTrackingModel->get_details(USER_TABLE, $issue_raised_by);
                 if (!empty($getData)) {
                     $token = $getData['token'];
+                } else {
+                    $token = "";
                 }
 
                 $msg =  $addressed_to . ' ' . $status . 'your issue';
@@ -324,6 +360,7 @@ class BugTracking extends REST_Controller
                 'msg' => 'issue_id and status required'
             );
         }
+
         $this->set_response($message, REST_Controller::HTTP_OK);
     }
 
@@ -353,7 +390,7 @@ class BugTracking extends REST_Controller
                 }
                 $msg =  $sender_name . ' has added new comment';
 
-                $this->Common_model->send_topic_notification($issue_id, "BugsTracker", $msg, $notification_type);
+                $this->Common_model->send_topic_notification($issue_id, $user_id, "BugsTracker", $msg, $notification_type);
 
                 $message = array(
                     'status' => 'success',
@@ -433,6 +470,56 @@ class BugTracking extends REST_Controller
             );
         }
 
+        $this->set_response($message, REST_Controller::HTTP_OK);
+    }
+
+    // Change Password
+    public function change_password_post()
+    {
+        $user_id = $this->post('user_id');
+        $old_password = $this->post('old_password');
+        $new_password = $this->post('new_password');
+
+        $usersTable = "users";
+
+        if (!empty($user_id) && !empty($old_password) && !empty($new_password)) {
+            $check = $this->Common_model->get_data_by_id($usersTable, 'id', $user_id);
+
+            if (!empty($check)) {
+                $old_pwd = $check['password'];
+                
+                if ($old_pwd == $old_password) {
+                    if ($old_password != $new_password) {
+                        $this->Common_model->change_status($usersTable, 'password', $new_password, 'id', $user_id);
+                        $message = array(
+                            'status' => 'success',
+                            'msg' => 'Password changed successfully'
+                        );
+                    } else {
+                        $message = array(
+                            'status' => 'error',
+                            'msg' => "New Password can't be same as old password"
+                        );
+                    }
+                } else {
+                    $message = array(
+                        'status' => 'error',
+                        'msg' => "Old Password is wrong"
+                    );
+                }
+            } else {
+                $message = array(
+                    'status' => 'error',
+                    'msg' => 'User not registered'
+                );
+            }
+        } else {
+            $message = array(
+                'status' => 'error',
+                'msg' => 'Old Password & New Password are required',
+                'error_msg' => 'User ID, Old Password & New Password are required'
+            );
+        }
         $this->set_response($message, REST_Controller::HTTP_OK);
     }
 }
